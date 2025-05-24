@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP 地址查询</title>
+    <style>
+        /* 整体背景和字体 */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7fa;
+            text-align: center;
+            margin: 0;
+            padding: 50px 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            justify-content: space-between;
+        }
+
+        /* 标题样式 */
+        h1 {
+            color: #333;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* 容器样式 */
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            flex-grow: 1;
+        }
+
+        /* 查询结果框 */
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f7f8fa;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+
+        .result p {
+            margin: 12px 0;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        /* 左上角链接样式（移动到底部） */
+        .links {
+            position: relative;
+            font-size: 0.9rem;
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .links a {
+            text-decoration: none;
+            margin-bottom: 10px;
+            color: #007bff;
+            transition: color 0.3s;
+            display: block;
+        }
+
+        .links a:hover {
+            color: #0056b3;
+        }
+
+        /* 查询按钮 */
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+            .container {
+                padding: 20px;
+                width: 90%;
+            }
+            .result p {
+                font-size: 0.9rem;
+            }
+            .links {
+                font-size: 1rem; /* 提高字体大小 */
+                position: relative;
+                bottom: 0;
+            }
+            .links a {
+                font-size: 1rem; /* 保证链接字体较大 */
+                margin-bottom: 15px; /* 增加上下间距 */
+                padding: 10px; /* 增加点击区域 */
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            .container {
+                padding: 15px;
+                width: 95%;
+            }
+            .result p {
+                font-size: 0.8rem;
+            }
+            .links {
+                font-size: 1rem; /* 提高字体大小 */
+                position: relative;
+                bottom: 0;
+                margin-bottom: 30px; /* 保证不会遮挡内容 */
+            }
+            .links a {
+                font-size: 1rem;
+                margin-bottom: 20px;
+                padding: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>IP 地址查询</h1>
+    <div class="container">
+        <button onclick="getIP()">查询我的IP</button>
+        <div id="result" class="result">
+            <p><strong>IP 地址:</strong> <span id="ip"></span></p>
+            <p><strong>城市:</strong> <span id="city"></span></p>
+            <p><strong>地区:</strong> <span id="region"></span></p>
+            <p><strong>国家:</strong> <span id="country"></span></p>
+            <p><strong>组织:</strong> <span id="org"></span></p>
+        </div>
+    </div>
+
+    <div class="links">
+        <a href="https://tool.kulafan.com" target="_blank">返回主页</a><br>
+        <a href="https://kulafan.com" target="_blank">进入 Kulafan's Blog</a>
+    </div>
+
+    <script>
+        function getIP() {
+            fetch('https://ipinfo.io/json')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('result').style.display = 'block';
+                    document.getElementById('ip').textContent = data.ip;
+                    document.getElementById('city').textContent = data.city;
+                    document.getElementById('region').textContent = data.region;
+                    document.getElementById('country').textContent = data.country;
+                    document.getElementById('org').textContent = data.org;
+                })
+                .catch(error => {
+                    alert('无法获取IP地址信息，稍后再试。');
+                    console.error('Error fetching IP data:', error);
+                });
+        }
+    </script>
+
+</body>
+</html>
