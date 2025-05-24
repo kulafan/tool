@@ -1,246 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Generator & Scanner</title>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
+    <title>工具合集 - Kulafan's Tools</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 50px;
-            margin-bottom: 50px;
-        }
-        .section {
-            padding: 20px;
-            margin-bottom: 40px;
-            border-radius: 8px;
-        }
-        .generator-section {
-            background-color: #f0f8ff;
-        }
-        .scanner-section {
-            background-color: #e9f7ef;
-        }
-        input[type="text"] {
-            padding: 10px;
-            width: 100%;
-            max-width: 300px;
-            font-size: 16px;
-            border: 2px solid #ccc;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            transition: border 0.3s ease;
-        }
-        input[type="text"]:focus {
-            border-color: #007BFF;
-        }
-        #qrcode {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 200px;
-        }
-        img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        .btn {
-            margin-top: 20px;
-            background-color: #28a745;
-            color: white;
-            font-size: 16px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
-        .btn:hover {
-            background-color: #218838;
-            transform: scale(1.05);
-        }
-        .btn:active {
-            transform: scale(1);
-        }
-        #upload-section {
-            margin-top: 30px;
-        }
-        #uploaded-qrcode {
-            margin-top: 20px;
-            display: none;
-        }
-        #result {
-            margin-top: 20px;
-            font-size: 18px;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
             color: #333;
         }
-        #drop-zone {
-            border: 2px dashed #ccc;
-            padding: 30px;
-            width: 100%;
-            max-width: 500px;
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
             margin: 20px auto;
+        }
+        h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        .tool {
+            background-color: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            color: #888;
         }
-        #drop-zone.hover {
-            border-color: #007BFF;
-            background-color: #f0f8ff;
+        .tool h2 {
+            margin: 0;
+            color: #2c3e50;
         }
-        /* Navigation link style */
-        .nav-link {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            font-size: 18px;
-            color: #007BFF;
+        .tool p {
+            color: #7f8c8d;
+        }
+        .tool a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
             text-decoration: none;
-            background-color: #fff;
-            padding: 8px 15px;
-            border-radius: 8px;
-            border: 1px solid #007BFF;
+            border-radius: 4px;
         }
-        .nav-link:hover {
-            background-color: #f0f8ff;
-            text-decoration: underline;
-        }
-
-        /* Mobile Responsiveness */
-        @media (max-width: 768px) {
-            input[type="text"] {
-                width: 90%;
-                max-width: none;
-            }
-            #qrcode {
-                height: 150px;
-            }
-            .section {
-                padding: 15px;
-            }
+        .tool a:hover {
+            background-color: #2980b9;
         }
     </style>
 </head>
 <body>
-    <!-- Navigation Link to Blog -->
-    <a href="https://kulafan.com" class="nav-link">Return to Kulafan's Blog</a>
 
-    <h1>QR Code Generator & Scanner</h1>
+<header>
+    <h1>工具合集 - Kulafan's Tools</h1>
+</header>
 
-    <!-- QR Code Generator Section -->
-    <div class="section generator-section">
-        <h2>Generate QR Code</h2>
-        <input type="text" id="input-text" placeholder="Enter URL or text here" oninput="generateQRCode()">
-        
-        <div id="qrcode">
-            <img id="qr-image" style="display: none;" />
-        </div>
-        
-        <a id="download-btn" href="" download="qrcode.png">
-            <button class="btn">Download QR Code</button>
-        </a>
+<div class="container">
+    <div class="tool">
+        <h2>1. 在线 NAT 检测</h2>
+        <p>检查您的网络 NAT 类型，帮助您诊断网络连接问题，尤其适用于游戏和实时通信。</p>
+        <a href="http://nat.kulafan.com" target="_blank">访问工具</a>
     </div>
 
-    <!-- QR Code Scanner Section -->
-    <div class="section scanner-section">
-        <h2>Scan QR Code</h2>
-        
-        <!-- Drag and Drop Area -->
-        <div id="drop-zone" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)">
-            Drag and drop your QR code image here
-        </div>
-
-        <!-- File Input Section -->
-        <input type="file" id="file-input" accept="image/*" onchange="scanQRCode()" style="display:none;">
-        <button class="btn" onclick="document.getElementById('file-input').click();">Upload QR Code Image</button>
-        
-        <div id="uploaded-qrcode">
-            <img id="uploaded-image" style="max-width: 100%; max-height: 200px;" />
-        </div>
-        <div id="result"></div>
+    <div class="tool">
+        <h2>2. 二维码生成器</h2>
+        <p>生成各种类型的二维码，支持文本、网址、联系人信息等内容，方便分享与传递。</p>
+        <a href="http://tool.kulafan.com/qr" target="_blank">访问工具</a>
     </div>
 
-    <script>
-        function generateQRCode() {
-            var inputText = document.getElementById('input-text').value;
-            var qrImage = document.getElementById('qr-image');
-            var downloadBtn = document.getElementById('download-btn');
-            
-            if (inputText.trim() !== '') {
-                QRCode.toDataURL(inputText, function (error, url) {
-                    if (error) {
-                        console.error(error);
-                    } else {
-                        qrImage.style.display = 'block';  // 显示二维码图片
-                        qrImage.src = url;  // 设置二维码图片源
-                        downloadBtn.style.display = 'inline-block';  // 显示下载按钮
-                        downloadBtn.href = url;  // 设置下载链接
-                    }
-                });
-            } else {
-                qrImage.style.display = 'none';  // 输入框为空时隐藏二维码图片
-                downloadBtn.style.display = 'none';  // 隐藏下载按钮
-            }
-        }
+</div>
 
-        function scanQRCode() {
-            var fileInput = document.getElementById('file-input');
-            var resultDiv = document.getElementById('result');
-            var uploadedImage = document.getElementById('uploaded-image');
-            var uploadedQRCode = document.getElementById('uploaded-qrcode');
-            
-            var file = fileInput.files[0];
-            if (file) {
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    uploadedQRCode.style.display = 'block';
-                    uploadedImage.src = event.target.result;
-
-                    // Create an image element to load the file
-                    var img = new Image();
-                    img.onload = function() {
-                        var canvas = document.createElement('canvas');
-                        var ctx = canvas.getContext('2d');
-                        canvas.width = img.width;
-                        canvas.height = img.height;
-                        ctx.drawImage(img, 0, 0, img.width, img.height);
-
-                        // Try to decode QR code
-                        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                        var decoded = jsQR(imageData.data, canvas.width, canvas.height);
-                        if (decoded) {
-                            resultDiv.textContent = 'QR Code Data: ' + decoded.data;
-                        } else {
-                            resultDiv.textContent = 'No QR Code found.';
-                        }
-                    };
-                    img.src = event.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // Drag and drop handlers
-        function dragOverHandler(event) {
-            event.preventDefault();
-            document.getElementById('drop-zone').classList.add('hover');
-        }
-
-        function dropHandler(event) {
-            event.preventDefault();
-            document.getElementById('drop-zone').classList.remove('hover');
-
-            var file = event.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) {
-                var fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.files = event.dataTransfer.files;
-                scanQRCode();
-            }
-        }
-    </script>
 </body>
 </html>
