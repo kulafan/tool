@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图片压缩工具 - Kulafan Tools</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 2rem;
+      color: #333;
+    }
+    .top-links {
+      max-width: 700px;
+      margin: 0 auto 1.5rem auto;
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-start;
+    }
+    .top-links a {
+      text-decoration: none;
+      background: #007bff;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 5px;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+    .top-links a:hover {
+      background: #0056b3;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      position: relative;
+      z-index: 1;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+    .upload-area {
+      border: 2px dashed #ccc;
+      padding: 4rem 2rem;
+      text-align: center;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      background: #fafafa;
+      font-size: 1.2rem;
+      position: relative;
+    }
+    .upload-area input[type="file"] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+    .controls {
+      margin-top: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .preview img {
+      max-width: 100%;
+      border-radius: 6px;
+      margin: 1rem 0;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .hidden {
+      display: none;
+    }
+    .compress-button {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    .compress-actions {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .image-block {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 1rem;
+      margin-bottom: 1rem;
+    }
+    .image-block p {
+      margin: 0.2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-links">
+    <a href="./index.html">返回工具</a>
+    <a href="https://www.kulafan.com" target="_blank" rel="noopener noreferrer">返回 Kulafan‘s Blog</a>
+  </div>
+
+  <div class="container">
+    <h1>图片压缩工具</h1>
+
+    <div class="upload-area">
+      点击或拖拽上传图片（支持批量）
+      <input type="file" id="upload" accept="image/*" multiple />
+    </div>
+
+    <div class="controls">
+      <label for="quality">压缩质量：<span id="qualityValue">0.5</span></label>
+      <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.5" />
+    </div>
+
+    <div class="compress-button">
+      <div class="compress-actions">
+        <button id="compressBtn">压缩图片</button>
+        <button id="downloadAllBtn" class="hidden">批量下载压缩图片</button>
+      </div>
+    </div>
+
+    <div class="preview" id="preview"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script>
+    const uploadInput = document.getElementById('upload');
+    const previewContainer = document.getElementById('preview');
+    const qualityInput = document.getElementById('quality');
+    const qualityValue = document.getElementById('qualityValue');
+    const compressBtn = document.getElementById('compressBtn');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+
+    let selectedFiles = [];
+    let compressedResults = [];
+
+    qualityInput.addEventListener('input', () => {
+      qualityValue.textContent = qualityInput.value;
+    });
+
+    uploadInput.addEventListener('change', (event) => {
+      selectedFiles = Array.from(event.target.files);
+      compressedResults = [];
+      downloadAllBtn.classList.add('hidden');
+      if (selectedFiles.length > 0) {
+        previewContainer.innerHTML = `<p>已选择 ${selectedFiles.length} 张图片，点击“压缩图片”按钮开始压缩。</p>`;
+      } else {
+        previewContainer.innerHTML = '';
+      }
+    });
+
+    compressBtn.addEventListener('click', async () => {
+      if (!selectedFiles.length) {
+        alert('请先上传图片');
+        return;
+      }
+
+      previewContainer.innerHTML = '<p>压缩中，请稍候...</p>';
+      compressedResults = [];
+      downloadAllBtn.classList.add('hidden');
+
+      const options = {
+        maxSizeMB: 10,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        initialQuality: parseFloat(qualityInput.value)
+      };
+
+      try {
+        const results = await Promise.all(
+          selectedFiles.map(async (file) => {
+            const compressed = await imageCompression(file, options);
+            const compressedURL = URL.createObjectURL(compressed);
+
+            return {
+              name: file.name,
+              originalSize: (file.size / 1024).toFixed(2),
+              compressedSize: (compressed.size / 1024).toFixed(2),
+              file: compressed,
+              url: compressedURL
+            };
+          })
+        );
+
+        compressedResults = results;
+
+        previewContainer.innerHTML = results.map(r => `
+          <div class="image-block">
+            <p><strong>${r.name}</strong></p>
+            <p>原始大小：${r.originalSize} KB</p>
+            <p>压缩后大小：${r.compressedSize} KB</p>
+            <img src="${r.url}" alt="${r.name}" />
+            <p><a href="${r.url}" download="compressed_${r.name}">下载单张图片</a></p>
+          </div>
+        `).join('');
+
+        downloadAllBtn.classList.remove('hidden');
+      } catch (error) {
+        previewContainer.innerHTML = '';
+        alert('压缩失败: ' + error.message);
+      }
+    });
+
+    downloadAllBtn.addEventListener('click', async () => {
+      if (!compressedResults.length) {
+        alert('没有压缩文件可下载');
+        return;
+      }
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.textContent = '打包下载中...';
+
+      const zip = new JSZip();
+      compressedResults.forEach(item => {
+        zip.file(`compressed_${item.name}`, item.file);
+      });
+
+      try {
+        const content = await zip.generateAsync({ type: "blob" });
+        const zipURL = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = zipURL;
+        a.download = 'compressed_images.zip';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(zipURL);
+      } catch (e) {
+        alert('打包失败: ' + e.message);
+      }
+
+      downloadAllBtn.disabled = false;
+      downloadAllBtn.textContent = '批量下载压缩图片';
+    });
+  </script>
+</body>
+</html>
