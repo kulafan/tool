@@ -18,6 +18,7 @@
       display: flex;
       gap: 1rem;
       justify-content: flex-start;
+      flex-wrap: wrap;
     }
     .top-links a {
       text-decoration: none;
@@ -68,8 +69,21 @@
       width: 100%;
     }
     .controls {
+      display: flex;
+      justify-content: space-between;
       margin-top: 1.5rem;
       margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .controls label {
+      font-size: 1rem;
+      font-weight: 500;
+      width: 100%;
+      text-align: left;
+    }
+    .controls input[type="range"], .controls input[type="number"] {
+      width: 100%;
     }
     .preview img {
       max-width: 100%;
@@ -100,7 +114,6 @@
       align-items: center;
       gap: 1rem;
       margin-bottom: 1rem;
-      flex-wrap: wrap;
     }
     .image-block {
       border-bottom: 1px solid #ddd;
@@ -110,12 +123,50 @@
     .image-block p {
       margin: 0.2rem 0;
     }
+    .resolution-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      width: 100%;
+    }
+    #resolutionSlider {
+      width: 100%;
+    }
+    .quality-container, .resolution-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem;
+      }
+      .controls {
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .quality-container, .resolution-container {
+        flex-direction: column;
+        width: 100%;
+      }
+      .quality-container label, .resolution-container label {
+        width: 100%;
+      }
+      .preview img {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
 
   <div class="top-links">
-    <a href="./index.html">返回工具</a>
+    <a href="/tool.kulafan.com">返回工具</a>
     <a href="https://www.kulafan.com" target="_blank" rel="noopener noreferrer">返回 Kulafan‘s Blog</a>
   </div>
 
@@ -128,8 +179,15 @@
     </div>
 
     <div class="controls">
-      <label for="quality">压缩质量：<span id="qualityValue">0.5</span></label>
-      <input type="range" id="quality" min="0.1" max="1" step="0.1" value="0.5" />
+      <div class="quality-container">
+        <label for="qualitySlider">压缩质量：<span id="qualityValue">0.5</span></label>
+        <input type="range" id="qualitySlider" min="0.1" max="1" step="0.1" value="0.5" />
+      </div>
+      <div class="resolution-container">
+        <label for="resolutionSlider">分辨率：<span id="resolutionValue">100</span>%</label>
+        <input type="range" id="resolutionSlider" min="1" max="100" value="100" />
+
+      </div>
     </div>
 
     <div class="compress-button">
@@ -147,16 +205,22 @@
   <script>
     const uploadInput = document.getElementById('upload');
     const previewContainer = document.getElementById('preview');
-    const qualityInput = document.getElementById('quality');
+    const qualitySlider = document.getElementById('qualitySlider');
     const qualityValue = document.getElementById('qualityValue');
     const compressBtn = document.getElementById('compressBtn');
     const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const resolutionSlider = document.getElementById('resolutionSlider');
+    const resolutionValue = document.getElementById('resolutionValue');
 
     let selectedFiles = [];
     let compressedResults = [];
 
-    qualityInput.addEventListener('input', () => {
-      qualityValue.textContent = qualityInput.value;
+    qualitySlider.addEventListener('input', () => {
+      qualityValue.textContent = qualitySlider.value;
+    });
+
+    resolutionSlider.addEventListener('input', () => {
+      resolutionValue.textContent = resolutionSlider.value;
     });
 
     uploadInput.addEventListener('change', (event) => {
@@ -184,38 +248,59 @@
         maxSizeMB: 10,
         maxWidthOrHeight: 1920,
         useWebWorker: true,
-        initialQuality: parseFloat(qualityInput.value)
+        initialQuality: parseFloat(qualitySlider.value),
       };
+
+      const resolutionRatio = parseFloat(resolutionSlider.value) / 100;
 
       try {
         const results = await Promise.all(
           selectedFiles.map(async (file) => {
             const compressed = await imageCompression(file, options);
-            const compressedURL = URL.createObjectURL(compressed);
+            const image = new Image();
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
 
-            return {
-              name: file.name,
-              originalSize: (file.size / 1024).toFixed(2),
-              compressedSize: (compressed.size / 1024).toFixed(2),
-              file: compressed,
-              url: compressedURL
-            };
+            image.src = URL.createObjectURL(compressed);
+
+            return new Promise((resolve) => {
+              image.onload = () => {
+                const width = image.width * resolutionRatio;
+                const height = image.height * resolutionRatio;
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(image, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                  const compressedFile = new File([blob], file.name, { type: file.type });
+                  const compressedURL = URL.createObjectURL(compressedFile);
+                  resolve({
+                    name: file.name,
+                    url: compressedURL,
+                    file: compressedFile,
+                    originalSize: (file.size / 1024).toFixed(2),
+                    compressedSize: (compressedFile.size / 1024).toFixed(2),
+                  });
+                });
+              };
+            });
           })
         );
 
         compressedResults = results;
 
-        previewContainer.innerHTML = results.map(r => `
+        previewContainer.innerHTML = results.map((r) => `
           <div class="image-block">
             <p><strong>${r.name}</strong></p>
-            <p>原始大小：${r.originalSize} KB</p>
-            <p>压缩后大小：${r.compressedSize} KB</p>
-            <img src="${r.url}" alt="${r.name}" />
-            <p><a href="${r.url}" download="compressed_${r.name}">下载单张图片</a></p>
+            <p><strong>原始大小：</strong>${r.originalSize} KB</p>
+            <p><strong>压缩后大小：</strong>${r.compressedSize} KB</p>
+            <img src="${r.url}" alt="压缩图" />
           </div>
         `).join('');
 
-        downloadAllBtn.classList.remove('hidden');
+        if (compressedResults.length > 0) {
+          downloadAllBtn.classList.remove('hidden');
+        }
       } catch (error) {
         previewContainer.innerHTML = '';
         alert('压缩失败: ' + error.message);
@@ -223,12 +308,8 @@
     });
 
     downloadAllBtn.addEventListener('click', async () => {
-      if (!compressedResults.length) {
-        alert('没有压缩文件可下载');
-        return;
-      }
       downloadAllBtn.disabled = true;
-      downloadAllBtn.textContent = '打包下载中...';
+      downloadAllBtn.textContent = '打包中，请稍候...';
 
       const zip = new JSZip();
       compressedResults.forEach(item => {
@@ -253,5 +334,6 @@
       downloadAllBtn.textContent = '批量下载压缩图片';
     });
   </script>
+
 </body>
 </html>
