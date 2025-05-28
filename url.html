@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sitemap URL 提取工具 - Kulafan</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+      padding: 1.5em;
+      max-width: 720px;
+      margin: auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1em;
+    }
+
+    header a {
+      text-decoration: none;
+      color: #007bff;
+      margin-left: 1em;
+      font-size: 0.9em;
+    }
+
+    h1 {
+      font-size: 1.2em;
+      margin: 0;
+    }
+
+    label {
+      font-weight: 500;
+      margin-top: 0.75em;
+      display: block;
+      font-size: 0.95em;
+    }
+
+    input[type="text"],
+    textarea,
+    input[type="file"] {
+      width: 100%;
+      padding: 0.5em;
+      margin-top: 0.25em;
+      font-size: 0.95em;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      margin-top: 0.5em;
+      margin-bottom: 1em;
+      padding: 0.45em 1em;
+      font-size: 0.95em;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    textarea {
+      height: 220px;
+      resize: vertical;
+    }
+
+    footer {
+      margin-top: 1em;
+      font-size: 0.85em;
+      text-align: center;
+      color: #777;
+    }
+
+    footer a {
+      color: #007bff;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Sitemap URL 提取工具</h1>
+    <nav>
+      <a href="https://tool.kulafan.com">← 返回工具</a>
+      <a href="https://www.kulafan.com" target="_blank">进入 Kulafan's Blog</a>
+    </nav>
+  </header>
+
+  <section>
+    <label for="sitemapUrl">从网址提取：</label>
+    <input type="text" id="sitemapUrl" placeholder="如：https://example.com/sitemap.xml" />
+    <button onclick="fetchSitemap()">提取 URL</button>
+
+    <label for="sitemapFile">或上传本地文件：</label>
+    <input type="file" id="sitemapFile" />
+    <button onclick="parseLocalFile()">解析上传的文件</button>
+
+    <label for="output">提取结果：</label>
+    <textarea id="output" placeholder="URL 将显示在此处..."></textarea>
+    <button onclick="downloadUrls()">下载为 .txt 文件</button>
+  </section>
+
+  <footer>
+    © 2025 <a href="https://www.kulafan.com" target="_blank">Kulafan's Blog</a>
+  </footer>
+
+  <script>
+    async function fetchSitemap() {
+      const url = document.getElementById("sitemapUrl").value.trim();
+      if (!url) return alert("请输入 sitemap 的 URL");
+
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        extractUrlsFromText(text);
+      } catch (err) {
+        alert("抓取失败，可能是跨域限制或网络问题。\n" + err.message);
+      }
+    }
+
+    function parseLocalFile() {
+      const fileInput = document.getElementById("sitemapFile");
+      if (!fileInput.files.length) return alert("请选择文件");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const text = e.target.result;
+        extractUrlsFromText(text);
+      };
+      reader.readAsText(fileInput.files[0]);
+    }
+
+    function extractUrlsFromText(text) {
+      try {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, "application/xml");
+
+        const parseError = xml.getElementsByTagName("parsererror");
+        if (parseError.length > 0) throw new Error("不是有效的 XML");
+
+        const locElements = xml.getElementsByTagName("loc");
+        if (locElements.length > 0) {
+          const urls = Array.from(locElements).map(el => el.textContent.trim());
+          document.getElementById("output").value = urls.join("\n");
+          return;
+        }
+
+        throw new Error("XML 中未找到 <loc> 标签");
+      } catch (e) {
+        // 非 XML 结构，尝试用正则提取 URL
+        const urls = Array.from(text.matchAll(/https?:\/\/[^\s"'<>\]]+/g)).map(m => m[0]);
+        if (urls.length > 0) {
+          document.getElementById("output").value = urls.join("\n");
+        } else {
+          document.getElementById("output").value = "未能识别 URL，请确认文件内容格式是否正确。";
+        }
+      }
+    }
+
+    function downloadUrls() {
+      const text = document.getElementById("output").value;
+      if (!text.trim()) return alert("没有可下载的内容");
+
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "sitemap-urls.txt";
+      a.click();
+
+      URL.revokeObjectURL(url);
+    }
+  </script>
+
+</body>
+</html>
