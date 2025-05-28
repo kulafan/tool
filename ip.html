@@ -143,7 +143,10 @@
     </style>
 </head>
 <body>
-
+		<nav>
+      <a href="https://tool.kulafan.com">← 返回工具</a>
+      <a href="https://www.kulafan.com" target="_blank">进入 Kulafan's Blog</a>
+    </nav>
     <h1>IP 地址查询</h1>
     <div class="container">
         <button onclick="getIP()">查询我的IP</button>
@@ -155,12 +158,12 @@
             <p><strong>组织:</strong> <span id="org"></span></p>
         </div>
     </div>
-
+<!--
     <div class="links">
         <a href="https://tool.kulafan.com" target="_blank">返回主页</a><br>
         <a href="https://kulafan.com" target="_blank">进入 Kulafan's Blog</a>
     </div>
-
+-->
     <script>
         function getIP() {
             fetch('https://ipinfo.io/json')
