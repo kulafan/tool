@@ -154,123 +154,148 @@
 
     <div class="preview" id="preview"></div>
   </div>
+<script>
+  const uploadInput = document.getElementById('upload');
+  const previewContainer = document.getElementById('preview');
+  const qualitySlider = document.getElementById('qualitySlider');
+  const qualityValue = document.getElementById('qualityValue');
+  const resolutionSlider = document.getElementById('resolutionSlider');
+  const resolutionValue = document.getElementById('resolutionValue');
+  const formatSelect = document.getElementById('formatSelect');
+  const compressBtn = document.getElementById('compressBtn');
+  const downloadAllBtn = document.getElementById('downloadAllBtn');
 
-  <script>
-    const uploadInput = document.getElementById('upload');
-    const previewContainer = document.getElementById('preview');
-    const qualitySlider = document.getElementById('qualitySlider');
-    const qualityValue = document.getElementById('qualityValue');
-    const resolutionSlider = document.getElementById('resolutionSlider');
-    const resolutionValue = document.getElementById('resolutionValue');
-    const formatSelect = document.getElementById('formatSelect');
-    const compressBtn = document.getElementById('compressBtn');
-    const downloadAllBtn = document.getElementById('downloadAllBtn');
+  let selectedFiles = [];
+  let compressedResults = [];
 
-    let selectedFiles = [];
-    let compressedResults = [];
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    qualitySlider.addEventListener('input', () => {
-      qualityValue.textContent = qualitySlider.value;
-    });
-    resolutionSlider.addEventListener('input', () => {
-      resolutionValue.textContent = resolutionSlider.value;
-    });
+  qualitySlider.addEventListener('input', () => {
+    qualityValue.textContent = qualitySlider.value;
+  });
 
-    uploadInput.addEventListener('change', (event) => {
-      selectedFiles = Array.from(event.target.files);
-      compressedResults = [];
-      downloadAllBtn.classList.add('hidden');
-      if (selectedFiles.length > 0) {
-        previewContainer.innerHTML = `<p>已选择 ${selectedFiles.length} 张图片，点击“压缩图片”按钮开始处理。</p>`;
-      } else {
-        previewContainer.innerHTML = '';
-      }
-    });
+  resolutionSlider.addEventListener('input', () => {
+    resolutionValue.textContent = resolutionSlider.value;
+  });
 
-    compressBtn.addEventListener('click', async () => {
-      if (!selectedFiles.length) {
-        alert('请先上传图片');
-        return;
-      }
+  uploadInput.addEventListener('change', (event) => {
+    selectedFiles = Array.from(event.target.files);
+    compressedResults = [];
+    downloadAllBtn.classList.add('hidden');
+    if (selectedFiles.length > 0) {
+      previewContainer.innerHTML = `<p>已选择 ${selectedFiles.length} 张图片，点击“压缩图片”按钮开始处理。</p>`;
+    } else {
+      previewContainer.innerHTML = '';
+    }
+  });
 
-      previewContainer.innerHTML = '<p>压缩中，请稍候...</p>';
-      compressedResults = [];
-      downloadAllBtn.classList.add('hidden');
+  async function compressAndValidate(file, quality, outputType, scale) {
+    const maxAttempts = 5;
+    let currentQuality = quality;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
 
-      const quality = parseFloat(qualitySlider.value);
-      const scale = parseFloat(resolutionSlider.value) / 100;
-      const outputType = formatSelect.value;
-      const outputExt = outputType.split('/')[1];
+    for (let i = 0; i < maxAttempts; i++) {
+      const compressedBlob = await imageCompression(file, {
+        maxSizeMB: 10,
+        useWebWorker: true,
+        initialQuality: currentQuality,
+      });
 
-      const results = await Promise.all(selectedFiles.map(async (file) => {
-        const compressedBlob = await imageCompression(file, {
-          maxSizeMB: 10,
-          useWebWorker: true,
-          initialQuality: quality,
-        });
+      const img = new Image();
+      img.src = URL.createObjectURL(compressedBlob);
 
-        const img = new Image();
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        img.src = URL.createObjectURL(compressedBlob);
+      const result = await new Promise((resolve) => {
+        img.onload = () => {
+          const width = img.width * scale;
+          const height = img.height * scale;
+          canvas.width = width;
+          canvas.height = height;
+          ctx.drawImage(img, 0, 0, width, height);
 
-        return new Promise((resolve) => {
-          img.onload = () => {
-            const width = img.width * scale;
-            const height = img.height * scale;
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob((blob) => {
+            const ext = outputType.split('/')[1];
+            const newName = file.name.replace(/\.\w+$/, `.${ext}`);
+            const compressedFile = new File([blob], newName, { type: outputType });
+            const url = URL.createObjectURL(compressedFile);
 
-            canvas.toBlob((blob) => {
-              const newName = file.name.replace(/\.\w+$/, `.${outputExt}`);
-              const compressedFile = new File([blob], newName, { type: outputType });
-              const url = URL.createObjectURL(compressedFile);
+            if (compressedFile.size < file.size || !isMobile || i === maxAttempts - 1) {
               resolve({
                 name: newName,
                 url: url,
                 file: compressedFile,
                 originalSize: (file.size / 1024).toFixed(2),
-                compressedSize: (compressedFile.size / 1024).toFixed(2)
+                compressedSize: (compressedFile.size / 1024).toFixed(2),
+                note: (compressedFile.size >= file.size && isMobile)
+                  ? `压缩无效，已使用最小质量`
+                  : ''
               });
-            }, outputType, quality);
-          };
-        });
-      }));
-
-      compressedResults = results;
-
-      previewContainer.innerHTML = results.map(r => `
-        <div class="image-block">
-          <p><strong>${r.name}</strong></p>
-          <p>原始大小：${r.originalSize} KB</p>
-          <p>压缩后大小：${r.compressedSize} KB</p>
-          <img src="${r.url}" alt="预览图" />
-          <a href="${r.url}" download="${r.name}">下载这张图</a>
-        </div>
-      `).join('');
-
-      if (compressedResults.length > 0) {
-        downloadAllBtn.classList.remove('hidden');
-      }
-    });
-
-    downloadAllBtn.addEventListener('click', async () => {
-      const zip = new JSZip();
-      compressedResults.forEach(item => {
-        zip.file(item.name, item.file);
+            } else {
+              // 继续尝试更低 quality
+              currentQuality -= 0.1;
+              resolve(null);
+            }
+          }, outputType, currentQuality);
+        };
       });
 
-      const content = await zip.generateAsync({ type: 'blob' });
-      const zipURL = URL.createObjectURL(content);
-      const a = document.createElement('a');
-      a.href = zipURL;
-      a.download = 'compressed_images.zip';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
-  </script>
+      if (result) return result;
+    }
+  }
 
+  compressBtn.addEventListener('click', async () => {
+    if (!selectedFiles.length) {
+      alert('请先上传图片');
+      return;
+    }
+
+    previewContainer.innerHTML = '<p>压缩中，请稍候...</p>';
+    compressedResults = [];
+    downloadAllBtn.classList.add('hidden');
+
+    const quality = parseFloat(qualitySlider.value);
+    const scale = parseFloat(resolutionSlider.value) / 100;
+    const outputType = formatSelect.value;
+
+    const results = await Promise.all(
+      selectedFiles.map(file =>
+        compressAndValidate(file, quality, outputType, scale)
+      )
+    );
+
+    compressedResults = results;
+
+    previewContainer.innerHTML = results.map(r => `
+      <div class="image-block">
+        <p><strong>${r.name}</strong></p>
+        <p>原始大小：${r.originalSize} KB</p>
+        <p>压缩后大小：${r.compressedSize} KB</p>
+        ${r.note ? `<p style="color:red;">${r.note}</p>` : ''}
+        <img src="${r.url}" alt="预览图" />
+        <a href="${r.url}" download="${r.name}">下载这张图</a>
+      </div>
+    `).join('');
+
+    if (compressedResults.length > 0) {
+      downloadAllBtn.classList.remove('hidden');
+    }
+  });
+
+  downloadAllBtn.addEventListener('click', async () => {
+    const zip = new JSZip();
+    compressedResults.forEach(item => {
+      zip.file(item.name, item.file);
+    });
+
+    const content = await zip.generateAsync({ type: 'blob' });
+    const zipURL = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = zipURL;
+    a.download = 'compressed_images.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+</script>
 </body>
 </html>
